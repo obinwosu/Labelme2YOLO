@@ -215,20 +215,26 @@ class Labelme2YOLO(object):
 
         return label_id, yolo_center_x, yolo_center_y, yolo_w, yolo_h
     
-    def _save_yolo_label(self, json_name, label_dir_path, target_dir, yolo_obj_list):
-        txt_path = os.path.join(label_dir_path, 
-                                target_dir, 
-                                json_name.replace('.json', '.txt'))
+    def _save_yolo_image(self, json_data, json_name, image_dir_path, target_dir):
+      # Get the original image extension and path from `imagePath`
+      original_image_path = os.path.join(self._json_dir, json_data['imagePath'])
+      original_extension = json_data['imagePath'].split('.')[-1]
+      
+      if original_extension not in ['jpg', 'png']:
+          raise ValueError(f"Unsupported image format: {original_extension}")
+      
+      img_name = json_name.replace('.json', f'.{original_extension}')
+      img_path = os.path.join(image_dir_path, target_dir, img_name)
+      
+      # If the image file exists, copy it to the target directory
+      if not os.path.exists(img_path):
+          if not os.path.exists(original_image_path):
+              raise FileNotFoundError(f"Image file {original_image_path} not found.")
+          
+          shutil.copy(original_image_path, img_path)
+      
+      return img_path
 
-        with open(txt_path, 'w+') as f:
-            for yolo_obj_idx, yolo_obj in enumerate(yolo_obj_list):
-                yolo_obj_line = ""
-                for i in yolo_obj:
-                    yolo_obj_line += f'{i} '
-                yolo_obj_line = yolo_obj_line[:-1]
-                if yolo_obj_idx != len(yolo_obj_list) - 1:
-                    yolo_obj_line += '\n'
-                f.write(yolo_obj_line)
 
     def _save_yolo_image(self, json_data, json_name, image_dir_path, target_dir):
         img_name = json_name.replace('.json', '.png')
